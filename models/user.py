@@ -1,8 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ holds class User"""
+import hashlib
 import models
 from models.base_model import BaseModel, Base
-import hashlib
 from os import getenv
 import sqlalchemy
 from sqlalchemy import Column, String
@@ -17,8 +17,16 @@ class User(BaseModel, Base):
         password = Column(String(128), nullable=False)
         first_name = Column(String(128), nullable=True)
         last_name = Column(String(128), nullable=True)
-        places = relationship("Place", backref="user")
-        reviews = relationship("Review", backref="user")
+        places = relationship(
+            "Place",
+            cascade="all, delete, delete-orphan",
+            backref="user"
+        )
+        reviews = relationship(
+            "Review",
+            cascade="all, delete, delete-orphan",
+            backref="user"
+        )
     else:
         email = ""
         password = ""
@@ -29,12 +37,11 @@ class User(BaseModel, Base):
         """initializes user"""
         super().__init__(*args, **kwargs)
 
-    @property
-    def password(self):
-        return self._password
-
-    @password.setter
-    def password(self, password):
-        """Hashes a user password with MD5"""
-        encryption = hashlib.md5(password.encode())
-        self._password = encryption.hexdigest()
+    def __setattr__(self, __name: str, __value) -> None:
+        '''Sets an attribute of this class to a given value.'''
+        if __name == 'password':
+            if type(__value) is str:
+                m = hashlib.md5(bytes(__value, 'utf-8'))
+                super().__setattr__(__name, m.hexdigest())
+        else:
+            super().__setattr__(__name, __value)
